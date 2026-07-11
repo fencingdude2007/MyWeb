@@ -75,7 +75,7 @@ class Page(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    # Full-text search vector, populated during ingestion (Phase 2).
+    # Full-text search vector, populated during ingestion.
     fts = Column(TSVECTOR, nullable=True)
     # Number of index tokens in this page (BM25 document length).
     token_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

@@ -30,9 +30,8 @@ services:
       timeout: 5s
       retries: 10
 
-# Redis + a Celery `worker` service will be added in a later phase, once the
-# app needs background job processing at scale. For now FastAPI does the
-# page-processing work itself (see PLAN.md, Phase 2).
+# Add a Redis + Celery worker service here if background processing needs to
+# scale beyond a single process. For now the API handles ingestion itself.
 
 volumes:
   pgdata:

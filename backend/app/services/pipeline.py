@@ -1,8 +1,7 @@
-"""The page-processing pipeline: fetch -> extract -> summarize -> embed -> store.
+"""Page-processing pipeline: fetch -> extract -> summarize -> embed -> store.
 
-`process_page(page_id)` is deliberately a single standalone function. Today it's
-scheduled via FastAPI BackgroundTasks; in Phase 6b it can become a Celery task
-with no change to the body — only how it's invoked.
+`process_page(page_id)` is a standalone function run as a FastAPI background
+task; it can move to a Celery worker later without changing its body.
 """
 import asyncio
 import logging

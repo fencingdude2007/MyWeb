@@ -1,8 +1,8 @@
 # MyWeb AI
 
-**Your personal, searchable internet.** Save any webpage, PDF, YouTube video, or Google Doc with one click from a Chrome extension — then search everything you've saved in natural language, powered by a hybrid search engine built from scratch (BM25 + semantic vectors + fuzzy matching) with no dependency on a hosted search service.
+**Your personal, searchable internet.** Save any webpage, PDF, YouTube video, or Google Doc with one click from a Chrome extension — then search everything you've saved in natural language, powered by a hybrid search engine built from BM25 + semantic vectors + fuzzy matching with no dependency on a hosted search service.
 
-> Full-stack portfolio project — FastAPI + PostgreSQL/pgvector backend, React/TypeScript frontend, and a Manifest V3 Chrome extension. ~4,700 LOC · 12-table schema · 31 REST endpoints.
+> FastAPI + PostgreSQL/pgvector backend, React/TypeScript frontend, and a Manifest V3 Chrome extension.
 
 ---
 
@@ -98,10 +98,9 @@ extension/   Chrome extension (Manifest V3) — save + bookmark import
 
 ## Running it locally
 
-> This is a source-only portfolio repo — there's no public deployment, and the
-> backend needs API keys / a database to run fully. Secrets live in a gitignored
-> `backend/.env` (see `.env.example`). The web app's `/welcome` landing page
-> renders without a backend.
+> Runs locally; no public deployment. Copy `.env.example` to `backend/.env` and
+> fill in your own database URL and keys (gitignored). The `/welcome` page
+> renders without a backend running.
 
 **Database:** any PostgreSQL 16+ with the `vector` and `pg_trgm` extensions (e.g. a free [Neon](https://neon.tech) project), set as `DATABASE_URL` in `backend/.env`.
 
@@ -124,7 +123,7 @@ npm run dev                                # http://localhost:5173
 
 **Extension:** `cd extension && npm run build`, then load `extension/dist` unpacked at `chrome://extensions` (Developer mode on).
 
-Optional keys in `backend/.env` (all degrade gracefully if absent): `ANTHROPIC_API_KEY` (Claude summaries + Ask), `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (Google login + Drive).
+Optional keys in `backend/.env` (features are skipped if unset): `ANTHROPIC_API_KEY` (summaries + Ask), `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (Google login + Drive).
 
 ---
 
@@ -139,7 +138,3 @@ Optional keys in `backend/.env` (all degrade gracefully if absent): `ANTHROPIC_A
 - [x] Auth: JWT + Google OAuth (web + extension)
 - [ ] Public deployment + CI (GitHub Actions)
 - [ ] Move background processing to Celery/Redis for scale
-
----
-
-*Built as a deep-dive into information retrieval, semantic search, async pipelines, and full-stack + browser-extension engineering.*

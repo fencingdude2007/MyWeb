@@ -1,7 +1,7 @@
 """Tiny in-memory per-user rate limiter (sliding window).
 
 Good enough for a single-process deployment; swap for Redis if the app ever
-runs multiple workers (Phase 6b territory).
+runs multiple workers.
 """
 import time
 from collections import defaultdict, deque
