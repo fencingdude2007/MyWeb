@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: #0a0a0a;
+  color: #f5f5f5;
+}
+
+/* Highlighted terms inside search snippets (from Postgres ts_headline). */
+.snippet b {
+  color: #818cf8;
+  font-weight: 600;
+}

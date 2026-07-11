@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MyWeb AI</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0a0a0a;
+        --panel: #171717;
+        --border: #2a2a2a;
+        --text: #f5f5f5;
+        --muted: #a3a3a3;
+        --accent: #6366f1;
+        --accent-hover: #4f46e5;
+        --green: #4ade80;
+        --red: #f87171;
+      }
+      * { box-sizing: border-box; }
+      body {
+        width: 320px;
+        margin: 0;
+        padding: 16px;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      h1 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+      .tagline { margin: 0 0 16px; font-size: 12px; color: var(--muted); }
+      label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+      input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--text);
+        font-size: 13px;
+      }
+      input:focus { outline: none; border-color: var(--accent); }
+      button {
+        width: 100%;
+        padding: 9px;
+        margin-top: 12px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent);
+        color: white;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { background: var(--accent-hover); }
+      button:disabled { opacity: 0.5; cursor: default; }
+      button.secondary { background: transparent; color: var(--muted); font-weight: 400; margin-top: 8px; }
+      .hidden { display: none; }
+      .page-title {
+        font-size: 13px;
+        padding: 10px;
+        margin-bottom: 4px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        word-break: break-word;
+      }
+      .status { font-size: 12px; margin-top: 12px; min-height: 16px; }
+      .status.ok { color: var(--green); }
+      .status.err { color: var(--red); }
+      .status.muted { color: var(--muted); }
+      .summary {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        line-height: 1.5;
+        max-height: 120px;
+        overflow-y: auto;
+      }
+      .footer { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+      .footer a { color: var(--accent); text-decoration: none; }
+      .link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0; width: auto; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <h1>MyWeb AI</h1>
+    <p class="tagline">Save this page to your personal internet.</p>
+
+    <!-- Login / register -->
+    <section id="auth-view" class="hidden">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" autocomplete="username" />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+      <button id="login-btn">Log in</button>
+      <button id="google-btn" class="secondary" style="border:1px solid var(--border);color:var(--text)">Sign in with Google</button>
+      <button id="register-btn" class="secondary">Create an account</button>
+      <div id="auth-status" class="status"></div>
+    </section>
+
+    <!-- Save -->
+    <section id="save-view" class="hidden">
+      <div id="page-title" class="page-title">…</div>
+      <button id="save-btn">Save to MyWeb</button>
+      <div id="save-status" class="status muted"></div>
+      <div id="summary" class="summary"></div>
+
+      <!-- Bookmark import -->
+      <div id="import-section" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+        <button id="import-btn" class="secondary" style="border:1px solid var(--border);color:var(--text)">
+          Import Chrome bookmarks
+        </button>
+        <div id="import-confirm" class="hidden">
+          <p id="import-count" style="font-size:12px;color:var(--muted);margin:10px 0 0"></p>
+          <p style="font-size:11px;color:var(--muted);margin:4px 0 0">
+            You'll review each one in MyWeb and keep or delete it.
+          </p>
+          <button id="import-yes">Import all</button>
+          <button id="import-no" class="secondary">Cancel</button>
+        </div>
+        <div id="import-status" class="status muted"></div>
+      </div>
+      <div class="footer">
+        <a id="open-web" href="http://localhost:5173" target="_blank">Open MyWeb ↗</a>
+        <button id="logout-btn" class="link">Log out</button>
+      </div>
+    </section>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Understanding PostgreSQL Indexing</title>
+    <meta name="author" content="Ada Lovelace" />
+    <meta property="article:published_time" content="2024-03-15" />
+  </head>
+  <body>
+    <nav>Home About Contact</nav>
+    <article>
+      <h1>Understanding PostgreSQL Indexing</h1>
+      <p>
+        PostgreSQL indexes speed up queries by letting the database find rows
+        without scanning an entire table. The most common index type is the
+        B-tree, which works well for equality and range lookups on ordered data.
+      </p>
+      <p>
+        For full-text search, PostgreSQL offers GIN indexes over tsvector
+        columns. For fuzzy matching, the pg_trgm extension provides trigram
+        indexes. Choosing the right index for each query pattern is the key to
+        good performance as your dataset grows.
+      </p>
+    </article>
+    <footer>Copyright 2024</footer>
+  </body>
+</html>
