@@ -1,4 +1,4 @@
-# MyWeb AI
+# MyWeb
 
 **Your personal, searchable internet.** Save any webpage, PDF, YouTube video, or Google Doc with one click from a Chrome extension — then search everything you've saved in natural language, powered by a hybrid search engine built from BM25 + semantic vectors + fuzzy matching with no dependency on a hosted search service.
 
