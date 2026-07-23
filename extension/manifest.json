@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MyWeb — Save to your personal internet",
   "version": "0.2.0",
-  "description": "Your personal, searchable internet. Save any page, sweep whole windows of tabs into searchable sessions, and park distractions for later.",
+  "description": "Save any page to your personal, searchable library. Sweep windows of tabs into sessions and park distractions for later.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -20,10 +20,7 @@
     }
   },
   "permissions": ["activeTab", "tabs", "storage", "scripting", "identity", "bookmarks", "contextMenus"],
-  "host_permissions": [
-    "http://localhost:8000/*",
-    "https://myweb-production-534b.up.railway.app/*"
-  ],
+  "host_permissions": ["https://myweb-production-534b.up.railway.app/*"],
   "background": {
     "service_worker": "src/background.ts",
     "type": "module"
