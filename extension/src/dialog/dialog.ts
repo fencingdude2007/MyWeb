@@ -2,7 +2,7 @@ export {}; // module scope — keeps top-level names from clashing across entryp
 
 // "Save to new collection" dialog, opened by the context menu with ?url=…
 
-const DEFAULT_API = "http://localhost:8000";
+const DEFAULT_API = "https://myweb-production-534b.up.railway.app";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 

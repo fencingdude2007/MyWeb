@@ -4,8 +4,8 @@ export {}; // module scope — keeps top-level names from clashing across entryp
 
 // Server endpoints are configurable (Settings in the popup footer) so the same
 // build works against localhost, your own server, or the hosted app.
-const DEFAULT_API = "http://localhost:8000";
-const DEFAULT_WEB = "http://localhost:5173";
+const DEFAULT_API = "https://myweb-production-534b.up.railway.app";
+const DEFAULT_WEB = "https://my-web-gilt-three.vercel.app";
 let API_BASE = DEFAULT_API;
 let WEB_APP_URL = DEFAULT_WEB;
 

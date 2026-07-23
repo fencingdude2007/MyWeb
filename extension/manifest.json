@@ -20,7 +20,10 @@
     }
   },
   "permissions": ["activeTab", "tabs", "storage", "scripting", "identity", "bookmarks", "contextMenus"],
-  "host_permissions": ["http://localhost:8000/*"],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "https://myweb-production-534b.up.railway.app/*"
+  ],
   "background": {
     "service_worker": "src/background.ts",
     "type": "module"

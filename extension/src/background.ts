@@ -4,7 +4,7 @@ export {}; // module scope — keeps top-level names from clashing across entryp
 // straight into a collection if you want — from Google results, articles,
 // anywhere. Feedback comes through the toolbar-icon badge.
 
-const DEFAULT_API = "http://localhost:8000";
+const DEFAULT_API = "https://myweb-production-534b.up.railway.app";
 
 async function apiBase(): Promise<string> {
   const { apiBase } = await chrome.storage.local.get("apiBase");
