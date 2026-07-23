@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Check, Trash2 } from "lucide-react";
 
 import { PageRow } from "../components/PageRow";
-import { Spinner } from "../components/ui";
+import { Spinner, focusRing } from "../components/ui";
+import { Reveal } from "../lib/motion";
+import { cn } from "../lib/utils";
 import { api, type Page } from "../lib/api";
 
 export function ReviewPage() {
@@ -45,16 +48,31 @@ export function ReviewPage() {
     );
   }
 
+  const pillBtn = (tone: "keep" | "delete") =>
+    cn(
+      "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs transition-colors",
+      focusRing,
+      tone === "keep"
+        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+        : "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20",
+    );
+
   return (
     <div>
-      <Link to="/library" className="text-sm text-indigo-400 hover:underline">
-        ← Back to library
+      <Link
+        to="/library"
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded text-sm text-indigo-300 hover:text-indigo-200",
+          focusRing,
+        )}
+      >
+        <ArrowLeft className="h-4 w-4" /> Back to library
       </Link>
 
-      <div className="mt-4 mb-6 flex items-center justify-between">
+      <div className="mb-6 mt-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Review imported bookmarks</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <h1 className="text-2xl font-semibold tracking-tight">Review imported bookmarks</h1>
+          <p className="mt-1 text-sm text-neutral-400">
             Keep the pages you want in your library, delete the rest.
             {pages && pages.length > 0 && ` ${pages.length} left to review.`}
           </p>
@@ -63,7 +81,10 @@ export function ReviewPage() {
           <button
             onClick={() => keepAllMutation.mutate()}
             disabled={keepAllMutation.isPending}
-            className="shrink-0 rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-900 disabled:opacity-50"
+            className={cn(
+              "inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/10 disabled:opacity-50",
+              focusRing,
+            )}
           >
             {keepAllMutation.isPending ? "Keeping…" : "Keep all"}
           </button>
@@ -71,26 +92,22 @@ export function ReviewPage() {
       </div>
 
       {!pages || pages.length === 0 ? (
-        <p className="text-neutral-500">
+        <p className="text-neutral-400">
           Nothing to review. Import bookmarks from the Chrome extension popup to get started.
         </p>
       ) : (
         <div className="space-y-3">
-          {pages.map((page) => (
-            <PageRow key={page.id} page={page}>
-              <button
-                onClick={() => keepMutation.mutate(page)}
-                className="rounded-lg border border-green-900/60 px-2.5 py-1 text-xs text-green-400 transition-colors hover:bg-green-950/40"
-              >
-                Keep
-              </button>
-              <button
-                onClick={() => deleteMutation.mutate(page)}
-                className="rounded-lg border border-red-900/60 px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-950/40"
-              >
-                Delete
-              </button>
-            </PageRow>
+          {pages.map((page, i) => (
+            <Reveal key={page.id} delay={Math.min(i * 50, 300)}>
+              <PageRow page={page}>
+                <button onClick={() => keepMutation.mutate(page)} className={pillBtn("keep")}>
+                  <Check className="h-3.5 w-3.5" /> Keep
+                </button>
+                <button onClick={() => deleteMutation.mutate(page)} className={pillBtn("delete")}>
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
+              </PageRow>
+            </Reveal>
           ))}
         </div>
       )}

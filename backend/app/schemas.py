@@ -125,6 +125,17 @@ class CollectionCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 
 
+class CollectionFromUrls(BaseModel):
+    """Create (or reuse, by name) a collection and drop a batch of URLs into it.
+
+    Powers the extension's "Sweep & close" (a dated Session) and "Park it"
+    (a shared "Later" list). Pages already saved are just linked, not re-fetched.
+    """
+
+    name: str = Field(min_length=1, max_length=255)
+    urls: list[HttpUrl] = Field(max_length=500)
+
+
 class CollectionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -186,6 +197,13 @@ class AskSource(BaseModel):
 class AskOut(BaseModel):
     question: str
     answer: str
+    sources: list[AskSource]
+
+
+class SynthesisOut(BaseModel):
+    """A cited brief that pulls the through-line across a whole collection."""
+
+    summary: str
     sources: list[AskSource]
 
 

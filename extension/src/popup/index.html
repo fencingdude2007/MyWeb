@@ -2,127 +2,350 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>MyWeb AI</title>
+    <title>MyWeb</title>
     <style>
       :root {
         color-scheme: dark;
-        --bg: #0a0a0a;
-        --panel: #171717;
-        --border: #2a2a2a;
+        --bg: #070708;
         --text: #f5f5f5;
         --muted: #a3a3a3;
-        --accent: #6366f1;
-        --accent-hover: #4f46e5;
-        --green: #4ade80;
+        --faint: #6b6b6b;
+        --glass: rgba(255, 255, 255, 0.04);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --glass-hover: rgba(255, 255, 255, 0.08);
+        --accent: #818cf8;
+        --grad: linear-gradient(100deg, #6366f1, #8b5cf6);
+        --green: #34d399;
         --red: #f87171;
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
-        width: 320px;
+        width: 328px;
         margin: 0;
-        padding: 16px;
-        font-family: system-ui, -apple-system, sans-serif;
+        padding: 18px;
+        font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+          Roboto, sans-serif;
         background: var(--bg);
         color: var(--text);
+        position: relative;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
       }
-      h1 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
-      .tagline { margin: 0 0 16px; font-size: 12px; color: var(--muted); }
-      label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+      /* Ambient aurora glow, matching the web app. */
+      body::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(60% 45% at 15% -10%, rgba(99, 102, 241, 0.28), transparent 60%),
+          radial-gradient(50% 40% at 110% 0%, rgba(139, 92, 246, 0.2), transparent 60%);
+      }
+      .wrap {
+        position: relative;
+        z-index: 1;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 2px;
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .brand .ai {
+        background: linear-gradient(100deg, #c7d2fe, #818cf8 45%, #c4b5fd);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .tagline {
+        margin: 0 0 16px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 10px 0 5px;
+      }
       input {
         width: 100%;
-        padding: 8px 10px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--panel);
+        padding: 10px 12px;
+        border: 1px solid var(--glass-border);
+        border-radius: 11px;
+        background: var(--glass);
         color: var(--text);
         font-size: 13px;
+        backdrop-filter: blur(8px);
+        transition: border-color 0.15s, background 0.15s;
       }
-      input:focus { outline: none; border-color: var(--accent); }
+      input::placeholder {
+        color: var(--faint);
+      }
+      input:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--glass-border);
+        border-radius: 11px;
+        background: #141416;
+        color: var(--text);
+        font-size: 13px;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+      }
+      select:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
       button {
         width: 100%;
-        padding: 9px;
+        padding: 10px;
         margin-top: 12px;
         border: none;
-        border-radius: 8px;
-        background: var(--accent);
+        border-radius: 11px;
         color: white;
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
+        transition: transform 0.12s, filter 0.15s, background 0.15s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
       }
-      button:hover:not(:disabled) { background: var(--accent-hover); }
-      button:disabled { opacity: 0.5; cursor: default; }
-      button.secondary { background: transparent; color: var(--muted); font-weight: 400; margin-top: 8px; }
-      .hidden { display: none; }
-      .page-title {
+      button svg {
+        width: 15px;
+        height: 15px;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      /* Primary gradient button */
+      .primary {
+        background: var(--grad);
+        box-shadow: 0 8px 20px -8px rgba(99, 102, 241, 0.6);
+      }
+      .primary:hover:not(:disabled) {
+        filter: brightness(1.1);
+      }
+      button:active:not(:disabled) {
+        transform: scale(0.98);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      /* Glass secondary button */
+      .ghost {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .ghost:hover:not(:disabled) {
+        background: var(--glass-hover);
+      }
+      .link {
+        background: none;
+        border: none;
+        color: var(--accent);
+        cursor: pointer;
+        font-size: 12px;
+        padding: 0;
+        width: auto;
+        margin: 0;
+        font-weight: 500;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+      .hidden {
+        display: none;
+      }
+      .card {
         font-size: 13px;
-        padding: 10px;
-        margin-bottom: 4px;
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 8px;
+        padding: 11px 12px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
         word-break: break-word;
+        line-height: 1.4;
+        backdrop-filter: blur(8px);
       }
-      .status { font-size: 12px; margin-top: 12px; min-height: 16px; }
-      .status.ok { color: var(--green); }
-      .status.err { color: var(--red); }
-      .status.muted { color: var(--muted); }
+      .status {
+        font-size: 12px;
+        margin-top: 10px;
+        min-height: 15px;
+        line-height: 1.4;
+      }
+      .status.ok {
+        color: var(--green);
+      }
+      .status.err {
+        color: var(--red);
+      }
+      .status.muted {
+        color: var(--muted);
+      }
       .summary {
         font-size: 12px;
         color: var(--muted);
         margin-top: 8px;
         line-height: 1.5;
-        max-height: 120px;
+        max-height: 116px;
         overflow-y: auto;
       }
-      .footer { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
-      .footer a { color: var(--accent); text-decoration: none; }
-      .link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0; width: auto; margin: 0; }
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 16px 0 4px;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        height: 1px;
+        flex: 1;
+        background: var(--glass-border);
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row button {
+        margin-top: 0;
+      }
+      .footer {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+      }
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+      .gbtn {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .gbtn:hover:not(:disabled) {
+        background: var(--glass-hover);
+      }
     </style>
   </head>
   <body>
-    <h1>MyWeb AI</h1>
-    <p class="tagline">Save this page to your personal internet.</p>
+    <div class="wrap">
+      <div class="brand"><span class="ai">My</span>Web</div>
+      <p class="tagline">Save this page to your personal internet.</p>
 
-    <!-- Login / register -->
-    <section id="auth-view" class="hidden">
-      <label for="email">Email</label>
-      <input id="email" type="email" placeholder="you@example.com" autocomplete="username" />
-      <label for="password">Password</label>
-      <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
-      <button id="login-btn">Log in</button>
-      <button id="google-btn" class="secondary" style="border:1px solid var(--border);color:var(--text)">Sign in with Google</button>
-      <button id="register-btn" class="secondary">Create an account</button>
-      <div id="auth-status" class="status"></div>
-    </section>
-
-    <!-- Save -->
-    <section id="save-view" class="hidden">
-      <div id="page-title" class="page-title">…</div>
-      <button id="save-btn">Save to MyWeb</button>
-      <div id="save-status" class="status muted"></div>
-      <div id="summary" class="summary"></div>
-
-      <!-- Bookmark import -->
-      <div id="import-section" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-        <button id="import-btn" class="secondary" style="border:1px solid var(--border);color:var(--text)">
-          Import Chrome bookmarks
+      <!-- Login / register -->
+      <section id="auth-view" class="hidden">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="username" />
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        />
+        <button id="login-btn" class="primary">Log in</button>
+        <button id="google-btn" class="gbtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="none" style="stroke:none">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.4 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75z"/>
+          </svg>
+          Continue with Google
         </button>
+        <button id="register-btn" class="link" style="margin-top: 14px">
+          No account? Create one
+        </button>
+        <div id="auth-status" class="status"></div>
+      </section>
+
+      <!-- Save -->
+      <section id="save-view" class="hidden">
+        <div id="page-title" class="card">…</div>
+        <label for="collection-select">Save to collection</label>
+        <select id="collection-select">
+          <option value="">No collection</option>
+        </select>
+        <input id="new-collection-name" class="hidden" placeholder="New collection name…" style="margin-top: 8px" />
+        <button id="save-btn" class="primary">
+          <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          Save this page
+        </button>
+        <div id="save-status" class="status muted"></div>
+        <div id="summary" class="summary"></div>
+
+        <!-- Tab productivity actions -->
+        <div class="divider">Tabs</div>
+        <div class="row">
+          <button id="sweep-btn" class="ghost" title="Save every tab in this window, then close them">
+            <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            Sweep &amp; close
+          </button>
+          <button id="park-btn" class="ghost" title="Save this tab to your Later list and close it">
+            <svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v16l-9-4-9 4V5a2 2 0 0 1 2-2z"/></svg>
+            Park it
+          </button>
+        </div>
+        <div id="action-status" class="status muted"></div>
+
+        <!-- Bookmark import -->
+        <div class="divider">Import</div>
+        <button id="import-btn" class="ghost">Import Chrome bookmarks</button>
         <div id="import-confirm" class="hidden">
-          <p id="import-count" style="font-size:12px;color:var(--muted);margin:10px 0 0"></p>
-          <p style="font-size:11px;color:var(--muted);margin:4px 0 0">
+          <p id="import-count" style="font-size: 12px; color: var(--muted); margin: 10px 0 0"></p>
+          <p style="font-size: 11px; color: var(--faint); margin: 4px 0 0">
             You'll review each one in MyWeb and keep or delete it.
           </p>
-          <button id="import-yes">Import all</button>
-          <button id="import-no" class="secondary">Cancel</button>
+          <div class="row" style="margin-top: 10px">
+            <button id="import-yes" class="primary">Import all</button>
+            <button id="import-no" class="ghost">Cancel</button>
+          </div>
         </div>
         <div id="import-status" class="status muted"></div>
-      </div>
-      <div class="footer">
-        <a id="open-web" href="http://localhost:5173" target="_blank">Open MyWeb ↗</a>
-        <button id="logout-btn" class="link">Log out</button>
-      </div>
-    </section>
+
+        <div class="footer">
+          <a id="open-web" href="http://localhost:5173" target="_blank">Open MyWeb ↗</a>
+          <button id="logout-btn" class="link">Log out</button>
+        </div>
+      </section>
+
+    </div>
 
     <script type="module" src="./main.ts"></script>
   </body>

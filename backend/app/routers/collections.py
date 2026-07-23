@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,8 +8,17 @@ from app.db import get_db
 from app.deps import get_current_user
 from app.models import Collection, CollectionPage, Page, PageTag, Tag, User
 from app.ratelimit import check_rate_limit
-from app.schemas import CollectionCreate, CollectionOut, PageOut, SuggestionOut
+from app.routers.pages import _process_sequentially, canonicalize
+from app.schemas import (
+    CollectionCreate,
+    CollectionFromUrls,
+    CollectionOut,
+    PageOut,
+    SuggestionOut,
+    SynthesisOut,
+)
 from app.services.suggest import build_query, suggest_sites
+from app.services.synthesize import synthesize_collection
 
 router = APIRouter(prefix="/collections", tags=["collections"])
 
@@ -39,6 +48,78 @@ async def create_collection(
     await db.commit()
     await db.refresh(coll)
     return _out(coll, 0)
+
+
+@router.post("/from-urls", response_model=CollectionOut, status_code=status.HTTP_201_CREATED)
+async def collection_from_urls(
+    data: CollectionFromUrls, background: BackgroundTasks, user: CurrentUser, db: DbSession
+) -> CollectionOut:
+    """Create-or-reuse a collection by name and drop a batch of URLs into it.
+
+    Powers the extension's "Sweep & close" (a new dated Session) and "Park it"
+    (the shared "Later" list). URLs already saved are linked rather than
+    re-fetched; genuinely new URLs are created and processed in the background."""
+    check_rate_limit(user.id, "sweep", limit=20, window_seconds=60)
+
+    # Reuse an existing collection with the same name (so "Later" is stable),
+    # otherwise create a fresh one (Sessions get unique dated names).
+    coll = await db.scalar(
+        select(Collection).where(
+            Collection.user_id == user.id, Collection.name == data.name
+        )
+    )
+    if coll is None:
+        coll = Collection(user_id=user.id, name=data.name)
+        db.add(coll)
+        await db.flush()
+
+    # Map every canonical URL the user already has → its page id, to dedupe.
+    existing: dict[str, int] = {
+        row.canonical_url: row.id
+        for row in await db.execute(
+            select(Page.canonical_url, Page.id).where(Page.user_id == user.id)
+        )
+    }
+    linked = set(
+        await db.scalars(
+            select(CollectionPage.page_id).where(
+                CollectionPage.collection_id == coll.id
+            )
+        )
+    )
+
+    new_ids: list[int] = []
+    seen: set[str] = set()
+    for url in data.urls:
+        canonical = canonicalize(str(url))
+        if canonical in seen:
+            continue
+        seen.add(canonical)
+
+        page_id = existing.get(canonical)
+        if page_id is None:
+            page = Page(
+                user_id=user.id,
+                url=str(url),
+                canonical_url=canonical,
+                status="pending",
+                source="web",
+            )
+            db.add(page)
+            await db.flush()
+            page_id = page.id
+            existing[canonical] = page_id
+            new_ids.append(page_id)
+
+        if page_id not in linked:
+            db.add(CollectionPage(collection_id=coll.id, page_id=page_id))
+            linked.add(page_id)
+
+    await db.commit()
+    if new_ids:
+        background.add_task(_process_sequentially, new_ids)
+
+    return _out(coll, len(linked))
 
 
 @router.get("", response_model=list[CollectionOut])
@@ -143,3 +224,15 @@ async def collection_suggestions(
     query = build_query(coll.name, titles, tags)
     results = await suggest_sites(query, exclude_urls=saved_urls)
     return [SuggestionOut(**r) for r in results]
+
+
+@router.post("/{collection_id}/synthesize", response_model=SynthesisOut)
+async def synthesize(
+    collection_id: int, user: CurrentUser, db: DbSession
+) -> SynthesisOut:
+    """Pull the through-line across every page in the collection into one
+    cited brief — read this instead of re-opening a dozen tabs."""
+    check_rate_limit(user.id, "synthesize", limit=10, window_seconds=60)
+    await _get_owned(collection_id, user, db)
+    result = await synthesize_collection(db, user.id, collection_id)
+    return SynthesisOut(**result)

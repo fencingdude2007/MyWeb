@@ -1,5 +1,22 @@
-// MyWeb AI popup: log in with email/password, then save the current tab.
-const API_BASE = "http://localhost:8000";
+export {}; // module scope — keeps top-level names from clashing across entrypoints
+
+// MyWeb popup: log in with email/password, then save the current tab.
+
+// Server endpoints are configurable (Settings in the popup footer) so the same
+// build works against localhost, your own server, or the hosted app.
+const DEFAULT_API = "http://localhost:8000";
+const DEFAULT_WEB = "http://localhost:5173";
+let API_BASE = DEFAULT_API;
+let WEB_APP_URL = DEFAULT_WEB;
+
+const normalizeUrl = (u: string) => u.trim().replace(/\/+$/, "");
+
+async function loadConfig() {
+  const { apiBase, webUrl } = await chrome.storage.local.get(["apiBase", "webUrl"]);
+  if (apiBase) API_BASE = normalizeUrl(apiBase);
+  if (webUrl) WEB_APP_URL = normalizeUrl(webUrl);
+  ($("open-web") as HTMLAnchorElement).href = WEB_APP_URL;
+}
 
 // --- tiny helpers ---------------------------------------------------------
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -44,6 +61,59 @@ async function showSave() {
     titleEl.textContent = "This page can't be saved.";
     saveBtn.disabled = true;
   }
+
+  void loadCollections();
+}
+
+// Fill the "Save to collection" picker: none / existing / create-new.
+async function loadCollections() {
+  const token = await getToken();
+  if (!token) return;
+  const select = $<HTMLSelectElement>("collection-select");
+  const { lastCollection } = await chrome.storage.local.get("lastCollection");
+
+  const res = await apiFetch("/collections", {}, token).catch(() => null);
+  const collections: { id: number; name: string }[] = res?.ok ? await res.json() : [];
+
+  select.innerHTML = "";
+  const add = (value: string, label: string) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  };
+  add("", "No collection");
+  for (const c of collections) add(String(c.id), c.name);
+  add("__new__", "➕ New collection…");
+
+  // Restore the last-used choice when it still exists.
+  if (
+    lastCollection &&
+    Array.from(select.options).some((o) => o.value === String(lastCollection))
+  ) {
+    select.value = String(lastCollection);
+  }
+}
+
+// Resolve the picker into a collection id, creating one when asked to.
+async function resolveCollectionId(token: string): Promise<number | null | "error"> {
+  const choice = $<HTMLSelectElement>("collection-select").value;
+  if (!choice) return null;
+
+  if (choice === "__new__") {
+    const name = $<HTMLInputElement>("new-collection-name").value.trim();
+    if (!name) return null;
+    const res = await apiFetch(
+      "/collections",
+      { method: "POST", body: JSON.stringify({ name }) },
+      token,
+    ).catch(() => null);
+    if (!res?.ok) return "error";
+    const coll = await res.json();
+    chrome.runtime.sendMessage({ type: "refresh-menus" }).catch(() => {});
+    return coll.id;
+  }
+  return Number(choice);
 }
 
 function setStatus(text: string, kind: "ok" | "err" | "muted" = "muted") {
@@ -57,12 +127,56 @@ async function activeTab(): Promise<chrome.tabs.Tab | undefined> {
   return tab;
 }
 
-// Grab the current rendered HTML of the page (the "saved state").
+// Grab the current rendered HTML of the page (the "saved state"), hardened so
+// snapshots stay renderable long after capture: scripts stripped (they're
+// blocked by the sandboxed viewer anyway), lazy-loaded images rescued, every
+// URL absolutized against the live page, and the result size-capped.
 async function capturePageHtml(tabId: number): Promise<string | null> {
   try {
     const [injection] = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => document.documentElement.outerHTML,
+      func: () => {
+        const MAX_BYTES = 2_500_000;
+        const root = document.documentElement.cloneNode(true) as HTMLElement;
+
+        // Scripts never run in the sandboxed snapshot viewer — drop them.
+        root.querySelectorAll("script, noscript").forEach((el) => el.remove());
+
+        const absolutize = (el: Element, attr: string) => {
+          const v = el.getAttribute(attr);
+          if (!v || /^(data:|https?:|#|mailto:|javascript:|blob:)/i.test(v)) return;
+          try {
+            el.setAttribute(attr, new URL(v, location.href).href);
+          } catch {
+            /* leave as-is */
+          }
+        };
+
+        // Lazy loaders keep the real image in data-src; promote it so the
+        // snapshot shows images that hadn't scrolled into view yet.
+        root.querySelectorAll("img").forEach((img) => {
+          const dataSrc = img.getAttribute("data-src") || img.getAttribute("data-lazy-src");
+          if (dataSrc && !(img.getAttribute("src") || "").startsWith("http")) {
+            img.setAttribute("src", dataSrc);
+          }
+          img.removeAttribute("loading");
+        });
+        // srcset candidates stay relative after cloning — drop them so the
+        // absolutized src wins.
+        root.querySelectorAll("[srcset]").forEach((el) => el.removeAttribute("srcset"));
+
+        root.querySelectorAll("img[src], source[src], video[src], audio[src]").forEach((el) =>
+          absolutize(el, "src"),
+        );
+        root.querySelectorAll("a[href], link[href], area[href]").forEach((el) =>
+          absolutize(el, "href"),
+        );
+
+        let html = "<!doctype html>" + root.outerHTML;
+        // Browsers parse truncated HTML forgivingly; a capped snapshot beats none.
+        if (html.length > MAX_BYTES) html = html.slice(0, MAX_BYTES);
+        return html;
+      },
     });
     return (injection?.result as string) ?? null;
   } catch {
@@ -141,6 +255,25 @@ async function savePage() {
   }
 
   const page = await res.json();
+
+  // Attach to the chosen collection (creating it first when "New collection…").
+  const collectionId = await resolveCollectionId(token);
+  if (collectionId === "error") {
+    setStatus("Saved, but the collection couldn't be created.", "err");
+  } else if (collectionId !== null) {
+    await apiFetch(
+      `/collections/${collectionId}/pages/${page.id}`,
+      { method: "PUT" },
+      token,
+    ).catch(() => null);
+    await chrome.storage.local.set({ lastCollection: collectionId });
+    $<HTMLSelectElement>("collection-select").value = String(collectionId);
+    $("new-collection-name").classList.add("hidden");
+    $<HTMLInputElement>("new-collection-name").value = "";
+  } else {
+    await chrome.storage.local.set({ lastCollection: "" });
+  }
+
   setStatus("Processing…");
   await pollUntilReady(page.id, token);
 }
@@ -168,8 +301,113 @@ async function pollUntilReady(pageId: number, token: string) {
   $<HTMLButtonElement>("save-btn").disabled = false;
 }
 
+// --- tab productivity: sweep & close / park it ------------------------------
+function setActionStatus(text: string, kind: "ok" | "err" | "muted" = "muted") {
+  const el = $("action-status");
+  el.textContent = text;
+  el.className = `status ${kind}`;
+}
+
+function appendActionLink(href: string, text: string) {
+  const link = document.createElement("a");
+  link.href = href;
+  link.target = "_blank";
+  link.textContent = text;
+  link.style.cssText = "display:block;margin-top:4px;color:var(--accent);text-decoration:none";
+  $("action-status").appendChild(link);
+}
+
+async function collectionFromUrls(name: string, urls: string[], token: string) {
+  return apiFetch(
+    "/collections/from-urls",
+    { method: "POST", body: JSON.stringify({ name, urls }) },
+    token,
+  ).catch(() => null);
+}
+
+// Save every savable tab in this window into a dated Session, then close them —
+// the whole window becomes a searchable snapshot instead of RAM pressure.
+async function sweepAndClose() {
+  const token = await getToken();
+  if (!token) return showAuth();
+
+  const tabs = await chrome.tabs.query({ currentWindow: true });
+  const savable = tabs.filter((t) => t.url && /^https?:/.test(t.url));
+  const urls = [...new Set(savable.map((t) => t.url as string))];
+  if (urls.length === 0) return setActionStatus("No savable tabs in this window.", "err");
+
+  $<HTMLButtonElement>("sweep-btn").disabled = true;
+  setActionStatus(`Saving ${urls.length} tab${urls.length === 1 ? "" : "s"}…`);
+
+  const name = `Session · ${new Date().toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+  const res = await collectionFromUrls(name, urls, token);
+
+  if (res && res.status === 401) {
+    await chrome.storage.local.remove("token");
+    return showAuth("Session expired — please log in again.");
+  }
+  if (!res || !res.ok) {
+    $<HTMLButtonElement>("sweep-btn").disabled = false;
+    return setActionStatus("Sweep failed — try again.", "err");
+  }
+
+  setActionStatus(`✓ Swept ${urls.length} tab${urls.length === 1 ? "" : "s"} into "${name}".`, "ok");
+  appendActionLink(`${WEB_APP_URL}/collections`, "Open your sessions ↗");
+
+  // Land the user on their sessions so the window stays open, then close the
+  // swept tabs now that they're safely captured.
+  try {
+    await chrome.tabs.create({ url: `${WEB_APP_URL}/collections`, active: true });
+    const ids = savable
+      .map((t) => t.id)
+      .filter((id): id is number => typeof id === "number");
+    await chrome.tabs.remove(ids);
+  } catch {
+    /* window/tabs may already be gone — capture already succeeded */
+  }
+  $<HTMLButtonElement>("sweep-btn").disabled = false;
+}
+
+// Defer a distracting tab into the shared "Later" list and close it — park the
+// temptation instead of white-knuckling a block.
+async function parkIt() {
+  const token = await getToken();
+  if (!token) return showAuth();
+  const tab = await activeTab();
+  if (!tab?.url || !/^https?:/.test(tab.url)) {
+    return setActionStatus("This tab can't be parked.", "err");
+  }
+
+  $<HTMLButtonElement>("park-btn").disabled = true;
+  setActionStatus("Parking…");
+  const res = await collectionFromUrls("Later", [tab.url], token);
+
+  if (res && res.status === 401) {
+    await chrome.storage.local.remove("token");
+    return showAuth("Session expired — please log in again.");
+  }
+  if (!res || !res.ok) {
+    $<HTMLButtonElement>("park-btn").disabled = false;
+    return setActionStatus("Couldn't park this tab.", "err");
+  }
+
+  setActionStatus("✓ Parked to your Later list.", "ok");
+  if (tab.id) {
+    try {
+      await chrome.tabs.remove(tab.id);
+    } catch {
+      /* ignore */
+    }
+  }
+  $<HTMLButtonElement>("park-btn").disabled = false;
+}
+
 // --- bookmark import --------------------------------------------------------
-const WEB_APP_URL = "http://localhost:5173";
 const IMPORT_BATCH = 200; // matches the backend's per-request cap comfortably
 
 function collectBookmarkUrls(nodes: chrome.bookmarks.BookmarkTreeNode[]): string[] {
@@ -254,6 +492,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("register-btn").addEventListener("click", () => authenticate("/auth/register"));
   $("google-btn").addEventListener("click", signInWithGoogle);
   $("save-btn").addEventListener("click", savePage);
+  $("sweep-btn").addEventListener("click", sweepAndClose);
+  $("park-btn").addEventListener("click", parkIt);
   $("import-btn").addEventListener("click", startImportFlow);
   $("import-yes").addEventListener("click", runImport);
   $("import-no").addEventListener("click", cancelImportFlow);
@@ -265,6 +505,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if ((e as KeyboardEvent).key === "Enter") authenticate("/auth/login");
   });
 
+  $("collection-select").addEventListener("change", () => {
+    const isNew = $<HTMLSelectElement>("collection-select").value === "__new__";
+    $("new-collection-name").classList.toggle("hidden", !isNew);
+    if (isNew) $<HTMLInputElement>("new-collection-name").focus();
+  });
+
+  await loadConfig();
   if (await getToken()) {
     await showSave();
   } else {

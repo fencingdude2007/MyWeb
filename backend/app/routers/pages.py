@@ -84,7 +84,9 @@ async def import_pages(
 ) -> ImportOut:
     """Bulk import (Chrome bookmarks). Created pages are flagged needs_review
     so the user can keep/delete them in the review flow."""
-    check_rate_limit(user.id, "import", limit=3, window_seconds=300)
+    # 10 batches of ≤500 per 5 min: enough for a one-shot 2000-bookmark import
+    # from the web app without opening the door to abuse.
+    check_rate_limit(user.id, "import", limit=10, window_seconds=300)
 
     existing_urls = set(
         (

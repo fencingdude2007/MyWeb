@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 
-import { Button, Input, Spinner } from "../components/ui";
+import { Button, Input, TypingDots } from "../components/ui";
+import { Reveal } from "../lib/motion";
 import { api, type AskResponse } from "../lib/api";
 
 export function AskPage() {
@@ -21,14 +23,21 @@ export function AskPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold">Ask your pages</h1>
-      <p className="mb-6 text-sm text-neutral-500">
+      <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+        <Sparkles className="h-6 w-6 text-indigo-400" />
+        Ask your pages
+      </h1>
+      <p className="mb-6 mt-1 text-sm text-neutral-400">
         Ask a question in plain language — the answer comes from the pages you've saved,
         with sources.
       </p>
 
       <form onSubmit={submit} className="flex gap-2">
+        <label htmlFor="ask-question" className="sr-only">
+          Ask a question about your saved pages
+        </label>
         <Input
+          id="ask-question"
           autoFocus
           placeholder="e.g. What did that article say about Postgres indexing?"
           value={question}
@@ -41,8 +50,9 @@ export function AskPage() {
       </form>
 
       {askMutation.isPending && (
-        <div className="flex items-center gap-3 py-8 text-sm text-neutral-500">
-          <Spinner /> Reading your saved pages…
+        <div className="mt-8 flex items-center gap-3 text-sm text-neutral-400">
+          <TypingDots />
+          Reading your saved pages…
         </div>
       )}
 
@@ -53,30 +63,40 @@ export function AskPage() {
       )}
 
       {result && !askMutation.isPending && (
-        <div className="mt-8">
-          <div className="rounded-xl border border-indigo-900/50 bg-indigo-950/20 p-5">
-            <p className="whitespace-pre-wrap leading-relaxed text-neutral-200">
+        <div className="mt-8 animate-fade-up">
+          <div className="relative overflow-hidden rounded-2xl border border-indigo-400/20 bg-gradient-to-br from-indigo-500/10 to-violet-500/[0.06] p-5">
+            <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-indigo-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              Answer
+            </div>
+            <p className="whitespace-pre-wrap leading-relaxed text-neutral-100">
               {result.answer}
             </p>
           </div>
 
           {result.sources.length > 0 && (
             <div className="mt-6">
-              <h2 className="mb-3 text-xs uppercase tracking-wide text-neutral-500">Sources</h2>
+              <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-400">
+                Sources
+              </h2>
               <ol className="space-y-2">
                 {result.sources.map((s, i) => (
-                  <li key={s.id} className="flex items-baseline gap-2 text-sm">
-                    <span className="shrink-0 text-neutral-600">[{i + 1}]</span>
-                    <Link
-                      to={`/page/${s.id}`}
-                      className="truncate text-indigo-400 hover:underline"
-                    >
-                      {s.title || s.url}
-                    </Link>
-                    {s.site_name && (
-                      <span className="shrink-0 text-xs text-neutral-600">{s.site_name}</span>
-                    )}
-                  </li>
+                  <Reveal key={s.id} delay={i * 60}>
+                    <li className="flex items-baseline gap-2 text-sm">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/[0.06] text-xs text-neutral-400">
+                        {i + 1}
+                      </span>
+                      <Link
+                        to={`/page/${s.id}`}
+                        className="truncate text-indigo-300 hover:underline"
+                      >
+                        {s.title || s.url}
+                      </Link>
+                      {s.site_name && (
+                        <span className="shrink-0 text-xs text-neutral-500">{s.site_name}</span>
+                      )}
+                    </li>
+                  </Reveal>
                 ))}
               </ol>
             </div>

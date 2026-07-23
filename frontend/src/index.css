@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Inter across the app — the "technical / AI dashboard" typeface the
+   ui-ux-pro-max skill recommends for this product type. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
 html,
 body,
 #root {
@@ -7,12 +14,191 @@ body,
 }
 
 body {
-  background: #0a0a0a;
+  background: #070708;
   color: #f5f5f5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Ambient aurora glow behind everything — subtle, fixed to the viewport so it
+   never scrolls or hurts text contrast (kept in the corners, away from copy). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(55% 45% at 18% -5%, rgba(79, 70, 229, 0.22), transparent 60%),
+    radial-gradient(45% 40% at 100% 0%, rgba(139, 92, 246, 0.16), transparent 60%),
+    radial-gradient(50% 50% at 50% 120%, rgba(99, 102, 241, 0.1), transparent 60%);
+}
+
+/* Selection + scrollbar polish */
+::selection {
+  background: rgba(129, 140, 248, 0.3);
+  color: #fff;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
+}
+
+/* ---------------------------------------------------------------------------
+   Surfaces
+--------------------------------------------------------------------------- */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+/* Interactive card that lifts and glows on hover. */
+.card-hover {
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(129, 140, 248, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 18px 40px -18px rgba(79, 70, 229, 0.5);
+}
+
+/* Gradient ink for hero words / accents. */
+.text-gradient {
+  background: linear-gradient(100deg, #c7d2fe 0%, #818cf8 42%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   Keyframes
+--------------------------------------------------------------------------- */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dotPulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@keyframes growBar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes growUp {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease both;
+}
+
+/* Scroll-reveal: starts hidden, `.reveal-in` (toggled by IntersectionObserver)
+   eases it into place. Stagger via inline transition-delay. */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.65s ease,
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* AI "typing" dots */
+.typing-dot {
+  animation: dotPulse 1.2s infinite ease-in-out;
+}
+
+/* Chart bars animating in */
+.bar-grow {
+  transform-origin: left center;
+  animation: growBar 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.bar-grow-up {
+  transform-origin: bottom center;
+  animation: growUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Highlighted terms inside search snippets (from Postgres ts_headline). */
 .snippet b {
-  color: #818cf8;
+  color: #a5b4fc;
   font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Respect the user's motion preference — kill all decorative motion.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
 }

@@ -6,6 +6,7 @@ const ACCESS_KEY = "myweb_access";
 const REFRESH_KEY = "myweb_refresh";
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_KEY);
+const getRefreshToken = () => localStorage.getItem(REFRESH_KEY);
 
 export function setTokens(access: string, refresh?: string) {
   localStorage.setItem(ACCESS_KEY, access);
@@ -23,7 +24,38 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
+// Access tokens expire after ~30 min; when a request 401s we silently trade the
+// refresh token for a new access token and retry once, so sessions survive.
+// A single in-flight refresh is shared by all concurrent 401s.
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefresh(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refresh = getRefreshToken();
+      if (!refresh) return false;
+      try {
+        const res = await fetch(`${API_BASE}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refresh }),
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        localStorage.setItem(ACCESS_KEY, data.access_token);
+        return true;
+      } catch {
+        return false;
+      }
+    })().finally(() => {
+      // Let the next expiry start a fresh refresh.
+      setTimeout(() => (refreshPromise = null), 0);
+    });
+  }
+  return refreshPromise;
+}
+
+async function request<T>(path: string, opts: RequestInit = {}, retried = false): Promise<T> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -32,6 +64,12 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(API_BASE + path, { ...opts, headers });
+
+  if (res.status === 401 && !retried && !path.startsWith("/auth/") && getRefreshToken()) {
+    if (await tryRefresh()) return request<T>(path, opts, true);
+    clearTokens();
+  }
+
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(res.status, data?.detail || res.statusText);
@@ -110,6 +148,11 @@ export interface AskResponse {
   sources: AskSource[];
 }
 
+export interface Synthesis {
+  summary: string;
+  sources: AskSource[];
+}
+
 export interface Stats {
   total_pages: number;
   ready_pages: number;
@@ -164,6 +207,11 @@ export const api = {
   search: (q: string) => request<SearchResponse>(`/search?q=${encodeURIComponent(q)}`),
   savePage: (url: string) =>
     request<Page>("/pages", { method: "POST", body: JSON.stringify({ url }) }),
+  importPages: (urls: string[]) =>
+    request<{ created: number; skipped: number }>("/pages/import", {
+      method: "POST",
+      body: JSON.stringify({ urls }),
+    }),
   listPages: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request<Page[]>(`/pages${qs ? `?${qs}` : ""}`);
@@ -190,6 +238,8 @@ export const api = {
     request<void>(`/collections/${collectionId}/pages/${pageId}`, { method: "DELETE" }),
   collectionSuggestions: (id: number | string) =>
     request<Suggestion[]>(`/collections/${id}/suggestions`),
+  synthesizeCollection: (id: number | string) =>
+    request<Synthesis>(`/collections/${id}/synthesize`, { method: "POST" }),
 
   // Notes
   listNotes: (pageId: number | string) => request<Note[]>(`/pages/${pageId}/notes`),

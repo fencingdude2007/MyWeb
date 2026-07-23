@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Inbox, Star, X } from "lucide-react";
 
+import { ImportBookmarks } from "../components/ImportBookmarks";
 import { PageRow } from "../components/PageRow";
-import { Spinner } from "../components/ui";
+import { Spinner, focusRing } from "../components/ui";
+import { Reveal } from "../lib/motion";
 import { api, type Page, type Tag } from "../lib/api";
 import { cn } from "../lib/utils";
 
@@ -21,6 +24,12 @@ export function LibraryPage() {
   const { data: pages, isLoading } = useQuery({
     queryKey: ["pages", filter, tag],
     queryFn: () => api.listPages(params),
+    // Freshly saved pages arrive as "pending" — poll until they're processed
+    // so the library updates in place with each save.
+    refetchInterval: (query) =>
+      query.state.data?.some((p) => p.status === "pending" || p.status === "processing")
+        ? 3000
+        : false,
   });
   const { data: tags } = useQuery({ queryKey: ["tags"], queryFn: api.listTags });
   const { data: reviewPages } = useQuery({
@@ -48,14 +57,26 @@ export function LibraryPage() {
     }
   };
 
+  const chip = (active: boolean) =>
+    cn(
+      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 capitalize transition-colors",
+      focusRing,
+      active
+        ? "border-indigo-400/50 bg-indigo-500/10 text-indigo-200"
+        : "border-white/10 text-neutral-300 hover:border-white/20 hover:text-neutral-100",
+    );
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Library</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Library</h1>
         {reviewPages && reviewPages.length > 0 && (
           <Link
             to="/review"
-            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-500"
+            className={cn(
+              "rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-3.5 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition-all hover:brightness-110",
+              focusRing,
+            )}
           >
             Review imported pages
           </Link>
@@ -67,22 +88,20 @@ export function LibraryPage() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={cn(
-              "rounded-full border px-3 py-1 capitalize",
-              filter === f
-                ? "border-indigo-500 text-indigo-300"
-                : "border-neutral-800 text-neutral-400 hover:text-neutral-200",
-            )}
+            aria-pressed={filter === f}
+            className={chip(filter === f)}
           >
-            {f === "favorites" ? "★ favorites" : f}
+            {f === "favorites" && <Star className="h-3.5 w-3.5" />}
+            {f}
           </button>
         ))}
         {tag && (
           <button
             onClick={() => setTag(null)}
-            className="rounded-full border border-indigo-500 px-3 py-1 text-indigo-300"
+            aria-label={`Clear tag filter #${tag}`}
+            className={chip(true)}
           >
-            #{tag} ✕
+            #{tag} <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
@@ -93,7 +112,10 @@ export function LibraryPage() {
             <button
               key={t.id}
               onClick={() => setTag(t.name)}
-              className="rounded-full bg-neutral-900 px-2.5 py-0.5 text-xs text-neutral-400 hover:text-neutral-100"
+              className={cn(
+                "rounded-full bg-white/[0.05] px-2.5 py-0.5 text-xs text-neutral-300 transition-colors hover:bg-white/10 hover:text-neutral-100",
+                focusRing,
+              )}
             >
               #{t.name}
             </button>
@@ -106,22 +128,35 @@ export function LibraryPage() {
           <Spinner />
         </div>
       ) : !pages || pages.length === 0 ? (
-        <p className="text-neutral-500">
-          No pages here yet. Save pages with the Chrome extension, or import your bookmarks
-          from the extension popup.
-        </p>
+        <EmptyState />
       ) : (
         <div className="space-y-3">
-          {pages.map((page) => (
-            <PageRow
-              key={page.id}
-              page={page}
-              onToggleFavorite={(p) => favoriteMutation.mutate(p)}
-              onDelete={onDelete}
-            />
+          {pages.map((page, i) => (
+            <Reveal key={page.id} delay={Math.min(i * 50, 300)}>
+              <PageRow
+                page={page}
+                onToggleFavorite={(p) => favoriteMutation.mutate(p)}
+                onDelete={onDelete}
+              />
+            </Reveal>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="glass flex flex-col items-center rounded-2xl px-6 py-14 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.06] text-neutral-400">
+        <Inbox className="h-6 w-6" />
+      </div>
+      <p className="mt-4 max-w-sm text-neutral-400">
+        No pages here yet. Save pages with the Chrome extension — or import your bookmarks
+        right now.
+      </p>
+      <ImportBookmarks className="mt-4" />
     </div>
   );
 }
