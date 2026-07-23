@@ -132,6 +132,8 @@ async def google_callback(request: Request, db: DbSession) -> RedirectResponse:
     token = await oauth.google.authorize_access_token(request)
     info = token.get("userinfo") or {}
     sub, email = info.get("sub"), info.get("email")
+    if email:
+        email = email.strip().lower()  # match the normalization used at signup
     if not sub or not email:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "Google did not return an account"

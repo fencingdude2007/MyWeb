@@ -1,16 +1,24 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_validator
+
+# Email addresses are case-insensitive in practice (Gmail et al.), so normalize
+# to lowercase everywhere to prevent duplicate accounts like Foo@x.com vs foo@x.com.
+_normalize_email = field_validator("email")(lambda cls, v: v.strip().lower())
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
 
+    _norm = _normalize_email
+
 
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
+
+    _norm = _normalize_email
 
 
 class RefreshIn(BaseModel):
