@@ -24,3 +24,5 @@ dist/
 .vscode/
 .claude/
 .github/workflows/
+.vercel
+.env*

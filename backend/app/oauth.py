@@ -12,11 +12,10 @@ if settings.google_configured:
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-        # drive.readonly lets the pipeline export full text of the user's
-        # Google Docs/Sheets/Slides. access_type=offline + prompt=consent make
-        # Google return a refresh token so Drive access survives token expiry.
-        client_kwargs={
-            "scope": "openid email profile https://www.googleapis.com/auth/drive.readonly",
-        },
-        authorize_params={"access_type": "offline", "prompt": "consent"},
+        # Basic sign-in only (non-sensitive scopes) so no Google security
+        # assessment is required to launch publicly. To re-enable Google Docs
+        # full-text later (after verifying the app), add back
+        # "https://www.googleapis.com/auth/drive.readonly" plus
+        # authorize_params={"access_type": "offline", "prompt": "consent"}.
+        client_kwargs={"scope": "openid email profile"},
     )
