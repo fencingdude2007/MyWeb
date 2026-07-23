@@ -325,9 +325,9 @@ async function collectionFromUrls(name: string, urls: string[], token: string) {
   ).catch(() => null);
 }
 
-// Save every savable tab in this window into a dated Session, then close them —
-// the whole window becomes a searchable snapshot instead of RAM pressure.
-async function sweepAndClose() {
+// Save every savable tab in this window into a dated Session (tabs stay open) —
+// the whole window becomes a searchable set you can reopen later.
+async function sweepTabs() {
   const token = await getToken();
   if (!token) return showAuth();
 
@@ -356,20 +356,8 @@ async function sweepAndClose() {
     return setActionStatus("Sweep failed — try again.", "err");
   }
 
-  setActionStatus(`✓ Swept ${urls.length} tab${urls.length === 1 ? "" : "s"} into "${name}".`, "ok");
+  setActionStatus(`✓ Saved ${urls.length} tab${urls.length === 1 ? "" : "s"} to "${name}".`, "ok");
   appendActionLink(`${WEB_APP_URL}/collections`, "Open your sessions ↗");
-
-  // Land the user on their sessions so the window stays open, then close the
-  // swept tabs now that they're safely captured.
-  try {
-    await chrome.tabs.create({ url: `${WEB_APP_URL}/collections`, active: true });
-    const ids = savable
-      .map((t) => t.id)
-      .filter((id): id is number => typeof id === "number");
-    await chrome.tabs.remove(ids);
-  } catch {
-    /* window/tabs may already be gone — capture already succeeded */
-  }
   $<HTMLButtonElement>("sweep-btn").disabled = false;
 }
 
@@ -492,7 +480,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("register-btn").addEventListener("click", () => authenticate("/auth/register"));
   $("google-btn").addEventListener("click", signInWithGoogle);
   $("save-btn").addEventListener("click", savePage);
-  $("sweep-btn").addEventListener("click", sweepAndClose);
+  $("sweep-btn").addEventListener("click", sweepTabs);
   $("park-btn").addEventListener("click", parkIt);
   $("import-btn").addEventListener("click", startImportFlow);
   $("import-yes").addEventListener("click", runImport);
