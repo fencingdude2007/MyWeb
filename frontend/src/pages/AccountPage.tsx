@@ -54,10 +54,8 @@ export function AccountPage() {
       </Card>
 
       <div className="mt-4 space-y-3">
-        <a
-          href={EXTENSION_URL}
-          target="_blank"
-          rel="noreferrer"
+        <Link
+          to={EXTENSION_URL}
           className={cn(
             "flex min-h-11 w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-neutral-200 transition-colors hover:bg-white/10",
             focusRing,
@@ -65,7 +63,7 @@ export function AccountPage() {
         >
           <Puzzle className="h-4 w-4 text-indigo-300" />
           Get the Chrome extension
-        </a>
+        </Link>
         <button
           onClick={downloadExport}
           className={cn(

@@ -75,10 +75,8 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2 text-sm">
-            <a
-              href={EXTENSION_URL}
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              to={EXTENSION_URL}
               title="Get the Chrome extension"
               className={cn(
                 "hidden h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-white/10 bg-white/5 px-3 text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/10 lg:inline-flex",
@@ -86,7 +84,7 @@ export function Layout({ children }: { children: ReactNode }) {
               )}
             >
               <Puzzle className="h-4 w-4 text-indigo-300" /> Extension
-            </a>
+            </Link>
             <Link
               to="/account"
               title={`Account — ${user?.email ?? ""}`}

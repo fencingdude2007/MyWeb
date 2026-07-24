@@ -8,6 +8,7 @@ import { CollectionDetailPage } from "./pages/CollectionDetailPage";
 import { CollectionsPage } from "./pages/CollectionsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { HomePage } from "./pages/HomePage";
+import { ExtensionPage } from "./pages/ExtensionPage";
 import { LandingPage } from "./pages/LandingPage";
 import { PrivacyPage, TermsPage } from "./pages/LegalPages";
 import { LibraryPage } from "./pages/LibraryPage";
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/extension" element={<ExtensionPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/library" element={<LibraryPage />} />

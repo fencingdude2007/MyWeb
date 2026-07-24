@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Puzzle, Save, Search } from "lucide-react";
 
@@ -31,14 +31,9 @@ function OnboardingCard() {
             <p className="font-medium text-neutral-100">Install the Chrome extension</p>
             <p className="mt-0.5 text-sm text-neutral-400">
               Save any page in one click, sweep whole windows of tabs, park distractions.{" "}
-              <a
-                href={EXTENSION_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="text-indigo-300 hover:underline"
-              >
+              <Link to={EXTENSION_URL} className="text-indigo-300 hover:underline">
                 Get it here →
-              </a>
+              </Link>
             </p>
           </div>
         </li>
